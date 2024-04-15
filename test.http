@@ -1,21 +1,25 @@
+### Ping server
+
 GET http://localhost:3000/ping
 Accept: application/json
 
-###
+### Get articles
 
 GET http://localhost:3000/articles
 Accept: application/json
 
-###
+### Get article by id
 
 GET http://localhost:3000/articles/1
 Accept: application/json
 
-###
-
-GET https://petstore3.swagger.io/api/v3/openapi.json
-
-###
+### Get openapi.json documentation
 
 GET http://localhost:3000/api/openapi.json
 Accept: application/json
+
+### Get swagger-ui docs
+
+GET http://localhost:3000/api/docs
+Accept: application/json
+
