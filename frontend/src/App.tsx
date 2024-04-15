@@ -3,25 +3,21 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 import createClient from "openapi-fetch";
-import {paths} from "./oapi/schema";
+import {paths} from "./api/schema";
 import {useQuery} from "@tanstack/react-query";
 
 function App() {
     const [count, setCount] = useState(0)
 
-    const client = createClient<paths>({baseUrl: "http://localhost:8011/"});
+    const client = createClient<paths>({baseUrl: "http://localhost:3000/"});
 
-    const query = useQuery<string, Error>({
-        queryKey: ['test'], queryFn: () => {
-            return client.GET("/hello/{name}", {
-                params: {
-                    path: {name: "Pascal"},
-                    query: {locale: "en-US"},
-                },
-            }).then((res) => {
-                    return res.data?.message ?? "";
-                }
-            );
+    const query = useQuery({
+        queryKey: ['getArticles'], queryFn: async ({signal}) => {
+            const {data} = await client.GET("/articles", {
+                params: {},
+                signal
+            });
+            return data;
         }
     })
 
@@ -57,15 +53,8 @@ function App() {
                 Click on the Vite and React logos to learn more
             </p>
             <>
-                {query.data}
+                {JSON.stringify(query.data,undefined, 2)}
             </>
-            {/*<form onSubmit={}>*/}
-            {/*    <label>*/}
-            {/*        Name:*/}
-            {/*        <input type="text" name="name"/>*/}
-            {/*    </label>*/}
-            {/*    <input type="submit" value="Submit"/>*/}
-            {/*</form>*/}
         </>
     )
 }

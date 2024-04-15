@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/swaggest/openapi-go/openapi3"
 	"github.com/swaggest/swgui/v5emb"
 	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -29,21 +30,29 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
+
 	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	r.Get("/articles", s.GetArticles)
 	getOp, _ := reflector.NewOperationContext(http.MethodGet, "/articles")
 	getOp.AddRespStructure(new([]*Article))
-	reflector.AddOperation(getOp)
-
-	r.Get("/articles/{id}", s.GetArticle)
-
-	schema, err := reflector.Spec.MarshalYAML()
+	err := reflector.AddOperation(getOp)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	r.Get("/articles/{id}", s.GetArticle)
 
 	r.Get("/api/openapi.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -60,16 +69,28 @@ func main() {
 	})
 
 	if c.Dev() {
-		r.Handle("/api/docs", v5emb.New(
+		schema, err := reflector.Spec.MarshalYAML()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = os.WriteFile("./api/openapi.yaml", schema, 0666)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		r.Mount("/api/docs", v5emb.New(
 			reflector.Spec.Title(),
-			"http://localhost:3000/api/openapi.json",
-			"/api/docs",
+			"/api/openapi.json",
+			"/api/docs/",
 		))
+		println("docs at http://localhost:3000/api/docs")
 	}
 
-	fmt.Println(string(schema))
-
-	http.ListenAndServe(":3000", r)
+	err = http.ListenAndServe(":3000", r)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 type Service struct {
